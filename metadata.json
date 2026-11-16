@@ -1,0 +1,6 @@
+{
+  "name": "LOCUS Student Housing",
+  "description": "Verified student PG, hostel, and campus housing discovery with interactive map, preference filters, comparison, and separate partner verification portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
