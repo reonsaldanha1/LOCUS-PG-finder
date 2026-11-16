@@ -2,14 +2,13 @@ import express from 'express';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
-import { COLLEGES, PROPERTY_IMAGES, SEED_PROPERTIES } from './src/data/locusData';
+import { COLLEGES, PROPERTY_IMAGES, SEED_PROPERTIES } from './src/data/locusData.ts';
 import type {
   AuditStatus,
   BookingRequest,
   PartnerUser,
   PGProperty,
-} from './src/types/locus';
+} from './src/types/locus.ts';
 
 interface StoredPartnerAccount extends PartnerUser {
   passwordHash: string;
@@ -115,17 +114,25 @@ function loadStore(): StoreState {
     return parsed;
   } catch {
     const initial = createSeedStore();
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), 'utf8');
+    try {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), 'utf8');
+    } catch {
+      // Fallback gracefully to in-memory store if filesystem is read-only
+    }
     return initial;
   }
 }
 
 function saveStore(state: StoreState): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(STORE_PATH, JSON.stringify(state, null, 2), 'utf8');
+  } catch {
+    // Keep in-memory state if filesystem write is restricted
   }
-  fs.writeFileSync(STORE_PATH, JSON.stringify(state, null, 2), 'utf8');
 }
 
 function signToken(partner: PartnerUser): string {
@@ -452,6 +459,7 @@ async function startServer() {
   });
 
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',

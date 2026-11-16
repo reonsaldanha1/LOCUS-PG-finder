@@ -99,7 +99,14 @@ export default function App() {
       return null;
     }
   });
-  const [partnerUser, setPartnerUser] = useState<PartnerUser | null>(null);
+  const [partnerUser, setPartnerUser] = useState<PartnerUser | null>(() => {
+    try {
+      const raw = localStorage.getItem('locus_partner_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Persist student progress
   useEffect(() => {
@@ -174,20 +181,28 @@ export default function App() {
         if (active) setPropertiesLoading(false);
       }
 
-      if (partnerToken && active) {
+      if (partnerToken && !partnerToken.startsWith('local:') && active) {
         try {
           const meRes = await fetch('/api/partner/me', {
             headers: { Authorization: `Bearer ${partnerToken}` },
           });
-          if (meRes.ok) {
+          const contentType = meRes.headers.get('content-type') || '';
+          if (meRes.ok && contentType.includes('application/json')) {
             const meData = await meRes.json();
-            if (active) setPartnerUser(meData.partner);
-          } else {
+            if (active) {
+              setPartnerUser(meData.partner);
+              localStorage.setItem('locus_partner_user', JSON.stringify(meData.partner));
+            }
+          } else if (meRes.status === 401) {
             localStorage.removeItem('locus_partner_token');
-            if (active) setPartnerToken(null);
+            localStorage.removeItem('locus_partner_user');
+            if (active) {
+              setPartnerToken(null);
+              setPartnerUser(null);
+            }
           }
         } catch {
-          // ignore
+          // ignore network errors
         }
       }
     }
@@ -249,11 +264,13 @@ export default function App() {
         bookings={bookings}
         onAuthenticated={(token, user) => {
           localStorage.setItem('locus_partner_token', token);
+          localStorage.setItem('locus_partner_user', JSON.stringify(user));
           setPartnerToken(token);
           setPartnerUser(user);
         }}
         onLogout={() => {
           localStorage.removeItem('locus_partner_token');
+          localStorage.removeItem('locus_partner_user');
           setPartnerToken(null);
           setPartnerUser(null);
         }}

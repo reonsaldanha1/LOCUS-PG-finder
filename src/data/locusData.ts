@@ -1,4 +1,4 @@
-import type { AmenityKey, College, FoodPolicy, PGProperty, VerificationTier } from '../types/locus';
+import type { AmenityKey, College, FoodPolicy, PGProperty, VerificationTier } from '../types/locus.ts';
 
 export const PROPERTY_IMAGES = {
   studio: '/src/assets/images/pg_studio_modern_1794843997669.jpg',
